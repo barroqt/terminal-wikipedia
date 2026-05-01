@@ -17,6 +17,30 @@ fn validate_url(url: &str) -> Result<(), Box<dyn Error>> {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     validate_url(&args.url)?;
-    println!("{}", args.url);
+
+    let client = reqwest::blocking::Client::new();
+    let response = client
+        .get(&args.url)
+        .header(
+            "User-Agent",
+            "terminal-wikipedia/0.1.0 (https://github.com/barroqt)",
+        )
+        .send()?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "HTTP error: {} {}",
+            response.status().as_u16(),
+            response
+                .status()
+                .canonical_reason()
+                .unwrap_or("Unknown error")
+        )
+        .into());
+    }
+
+    let html = response.text()?;
+    println!("{}", &html[0..100]);
+
     Ok(())
 }
